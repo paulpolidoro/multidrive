@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "display.h"
-#include "encoder.h"
+#include "rotary.h"
 
 extern "C" void app_main() {
     Display display;
@@ -18,36 +18,35 @@ extern "C" void app_main() {
 
     display.update();
 
-    Encoder encoder;
-    encoder.begin();
+    Rotary rotary;
+    rotary.begin();
 
 
     while (true) {
-        //int encoderValue = encoder.getPosition();
-        //if (encoderValue != 0)
-        //{
-        //    printf("Posição do Encoder: %d\n", encoderValue);
-
-        //}
+        int rotaryValue = rotary.getPosition();
+        
+        if (rotaryValue != 0){
+           printf("Posição do Encoder: %d\n", rotaryValue);
+        }
         
 
         //if (encoder.isPressed()) {
         //    printf("Botão pressionado!\n");
         //}
 
-        if (encoder.onPress()) {
+        if (rotary.onPress()) {
             printf("Botão pressionado!\n");
         }
 
-        if (encoder.onShortPress()) {
+        if (rotary.onShortPress()) {
             printf("Pressionamento curto!\n");
         }
 
-        if (encoder.onLongPress()) {
+        if (rotary.onLongPress()) {
             printf("Pressionamento longo!\n");
         }
 
-        if (encoder.onRelease()) {
+        if (rotary.onRelease()) {
             printf("Botão liberado!\n");
         }
 

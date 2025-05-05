@@ -1,12 +1,12 @@
-#ifndef ENCODER_H
-#define ENCODER_H
+#ifndef ROTARY_H
+#define ROTARY_H
 
 #include "driver/pcnt.h"
 #include "driver/gpio.h"
 
-class Encoder {
+class Rotary {
 public:
-    Encoder();
+Rotary();
     void begin();
     int getPosition();
     void reset();
@@ -25,7 +25,9 @@ private:
 
     bool lastButtonState = false;
     int64_t pressStartTime = 0;
+    bool longPressHandled = false; 
+    int longPressThreshold = 1000000; // 2 segundos em microssegundos
 
 };
 
-#endif // ENCODER_H
+#endif // ROTARY_H
