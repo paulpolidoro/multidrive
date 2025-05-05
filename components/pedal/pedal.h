@@ -1,0 +1,24 @@
+#ifndef PEDAL_H
+#define PEDAL_H
+
+#include <memory>
+#include <string>
+#include <vector>
+#include "fader.h"
+
+struct pedal_t {
+    int id; // Identificador único do pedal
+    bool selected; // Indica se o pedal está selecionado
+    std::string name; // Nome do pedal
+    std::vector<fader_t> faders; // Vetor dinâmico de faders
+};
+
+extern std::vector<std::shared_ptr<pedal_t>> pedals;
+
+void deselectAllPedals(std::vector<std::shared_ptr<pedal_t>>& pedals);
+
+void selectPedalById(std::vector<std::shared_ptr<pedal_t>>& pedals, int id);
+
+void selectPedalByIndex(std::vector<std::shared_ptr<pedal_t>>& pedals, int index);
+
+#endif // PEDAL_H
