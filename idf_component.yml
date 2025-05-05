@@ -1,0 +1,4 @@
+dependencies:
+  quackonauty/ssd1306:
+    git: https://github.com/quackonauty/ESP-IDF_SSD1306.git
+    version: latest
