@@ -94,7 +94,7 @@ void Display::addFader(int y, bool select, const fader_t& fader) {
     ESP_ERROR_CHECK(i2c_ssd1306_buffer_int(&i2c_ssd1306, w + x + 1, y+font_h, value, false));
 
     if (fader.selected) {
-        ESP_ERROR_CHECK(i2c_ssd1306_buffer_fill_space(&i2c_ssd1306, x, x + w, y, y + font_h -1, true));
+        //ESP_ERROR_CHECK(i2c_ssd1306_buffer_fill_space(&i2c_ssd1306, x, x + w, y, y + font_h -1, true));
     }
 
     ESP_ERROR_CHECK(i2c_ssd1306_buffer_text(&i2c_ssd1306, x, y, fader.title.c_str(), fader.selected));

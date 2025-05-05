@@ -21,15 +21,29 @@ extern "C" void app_main() {
         int rotaryValue = rotary.getPosition();
 
         if (rotaryValue != 0){
+            if (display.getCurrentScreen() == SCREEN_PEDAL_PARAMS) { 
+                for (auto& pedal : pedals) {
+                    if (pedal->selected) {
+                       // Verifica se o fader na página atual já está selecionado
+                        if (display.getCurrentPage() >= 0 && display.getCurrentPage() < pedal->faders.size()) {
+                            auto& fader = pedal->faders[display.getCurrentPage()];
+                            if (fader.selected) {
+                                fader.value += rotaryValue;
+                                display.update();
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+
             if(rotaryValue > 0) {
                 display.nextPage();
-
-                printf("Current Screen: %d, Current Page: %d\n", display.getCurrentScreen(), display.getCurrentPage());
             }
 
             if (rotaryValue < 0) {
                 display.previousPage();
-            }            
+            }       
         }
         
         if (rotary.onPress()) {
