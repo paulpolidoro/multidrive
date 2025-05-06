@@ -11,10 +11,10 @@ Rotary rotary;
 Screen screen;
 
 extern std::vector<std::shared_ptr<Pedal>> pedals = {
-    std::make_shared<Pedal>(Pedal{1, "Morning Glory", {Fader{"Volume"}, Fader{"Drive"}, Fader{"Tone"}, Fader{"Gain"}}}), 
-    std::make_shared<Pedal>(Pedal{2, "OCD", {Fader{"Volume"}, Fader{"Drive"}, Fader{"Tone"}}}),
-    std::make_shared<Pedal>(Pedal{3, "1989", {Fader{"Drive"}, Fader{"Cut"}, Fader{"Volume"}}}),
-    std::make_shared<Pedal>(Pedal{4, "Timmy", {Fader{"Drive"}, Fader{"Gain"}, Fader{"Bass"}, Fader{"Treble"}}}),
+    std::make_shared<Pedal>(Pedal{1, "Morning Glory", {Fader{5, "Volume"}, Fader{4, "Drive", 50}, Fader{2, "Tone", 100}}}), 
+    //std::make_shared<Pedal>(Pedal{2, "OCD", {Fader{"Volume"}, Fader{"Drive"}, Fader{"Tone"}}}),
+    //std::make_shared<Pedal>(Pedal{3, "1989", {Fader{"Drive"}, Fader{"Cut"}, Fader{"Volume"}}}),
+    //std::make_shared<Pedal>(Pedal{4, "Timmy", {Fader{"Drive"}, Fader{"Gain"}, Fader{"Bass"}, Fader{"Treble"}}}),
 };
 
 void onRotaryShortPress() {
