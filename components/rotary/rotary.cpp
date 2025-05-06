@@ -50,7 +50,7 @@ int Rotary::getPosition() {
     return direction;
 }
 
-bool Rotary::onPress() {
+bool Rotary::pressEvent() {
     bool buttonState = gpio_get_level(static_cast<gpio_num_t>(swPin)) == 0;
 
     if (buttonState && !lastButtonState) {
@@ -62,7 +62,7 @@ bool Rotary::onPress() {
     return false;
 }
 
-bool Rotary::onShortPress() {
+bool Rotary::shortPressEvent() {
     bool buttonState = gpio_get_level(static_cast<gpio_num_t>(swPin)) == 0;
 
     if (!buttonState && lastButtonState) {
@@ -76,7 +76,7 @@ bool Rotary::onShortPress() {
     return false;
 }
 
-bool Rotary::onLongPress() {
+bool Rotary::longPressEvent() {
     bool buttonState = gpio_get_level(static_cast<gpio_num_t>(swPin)) == 0;
     int64_t pressDuration = esp_timer_get_time() - pressStartTime;
 
@@ -91,7 +91,7 @@ bool Rotary::onLongPress() {
     return false;
 }
 
-bool Rotary::onRelease() {
+bool Rotary::releaseEvent() {
     bool buttonState = gpio_get_level(static_cast<gpio_num_t>(swPin)) == 0;
 
     if (!buttonState && lastButtonState) {
@@ -105,4 +105,27 @@ bool Rotary::onRelease() {
     }
 
     return false;
+}
+
+void Rotary::handleEvents() {
+    int value = getPosition();
+    if (value != 0) {
+        onTurn(value);
+    }
+
+    if (pressEvent()) {
+        onPress();
+    }
+
+    if (shortPressEvent()) {
+        onShortPress();
+    }
+
+    if (longPressEvent()) {
+        onLongPress();
+    }
+
+    if (releaseEvent()) {
+        onRelease();
+    }
 }

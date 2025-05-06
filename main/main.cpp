@@ -1,121 +1,84 @@
 #include <stdio.h>
-#include "display.h"
+//#include "display.h"
 #include "rotary.h"
 #include "pedal.h"
-#include "render.h"
+#include "screen.h"
 #include <vector>
 
-Display display;
+// Display display2;
 
-extern std::vector<std::shared_ptr<pedal_t>> pedals;
+Rotary rotary;
+Screen screen;
 
-extern std::vector<std::shared_ptr<Pedal>> pedais = {
-    std::make_shared<Pedal>(Pedal{1, "Morning Glory", {Fader{"Volume", 50}, Fader{"Drive", 75}, Fader{"Tone", 30}, Fader{"Gain", 20}}}), 
-    std::make_shared<Pedal>(Pedal{2, "OCD", {Fader{"Volume", 60}, Fader{"Drive", 80}, Fader{"Tone", 40}}}),
-    std::make_shared<Pedal>(Pedal{3, "1989", {Fader{"Drive", 70}, Fader{"Cut", 65}, Fader{"Volume", 50}}})
+extern std::vector<std::shared_ptr<Pedal>> pedals = {
+    std::make_shared<Pedal>(Pedal{1, "Morning Glory", {Fader{"Volume"}, Fader{"Drive"}, Fader{"Tone"}, Fader{"Gain"}}}), 
+    std::make_shared<Pedal>(Pedal{2, "OCD", {Fader{"Volume"}, Fader{"Drive"}, Fader{"Tone"}}}),
+    std::make_shared<Pedal>(Pedal{3, "1989", {Fader{"Drive"}, Fader{"Cut"}, Fader{"Volume"}}}),
+    std::make_shared<Pedal>(Pedal{4, "Timmy", {Fader{"Drive"}, Fader{"Gain"}, Fader{"Bass"}, Fader{"Treble"}}}),
 };
 
-bool changeFaderValue(int rotaryValue) {
-    for (auto& pedal : pedals) {
-        if (pedal->selected) {
-            // Verifica se o fader na página atual já está selecionado
-            if (display.getCurrentPage() >= 0 && display.getCurrentPage() < pedal->faders.size()) {
-                auto& fader = pedal->faders[display.getCurrentPage()];
-                if (fader.selected) {
-                    fader.value += rotaryValue;
-                    return true;
+void onRotaryShortPress() {
+    if (screen.getCurrentScreen() == SCREEN_PRESET_CHANGE) { 
+        deselectAllPedals(pedals);
+        screen.nextScreen();
+    } 
+    else if (screen.getCurrentScreen() == SCREEN_PRESET_EDIT) { 
+        selectPedalByIndex(pedals, screen.getCurrentPage());
+        screen.nextScreen();
+    } 
+    else if (screen.getCurrentScreen() == SCREEN_PEDAL_PARAMS) { 
+        for (auto& pedal : pedals) {
+            if (pedal->isSelected()) {
+                if (screen.getCurrentPage() >= 0 && screen.getCurrentPage() < pedal->faders.size()) {
+                    pedal->toggleSelectFaderByIndex(screen.getCurrentPage());
                 }
+
+                break;
             }
         }
-    }
 
-    return false;
+        screen.update();
+    }
+}
+
+void onRotaryLongPress(){
+    deselectAllPedals(pedals);
+    screen.previousScreen();
+}
+
+void onRotaryTurn(int value){
+    if (value != 0){
+        if (changeFaderValueIfSelected(pedals, value)) {
+            screen.update();
+            return;
+        }
+
+        if(value > 0) {
+            screen.nextPage();
+        }
+
+        if (value < 0) {
+            screen.previousPage();
+        }       
+    }
 }
 
 extern "C" void app_main() {
+    screen.init();
+    screen.update();
     
-    display.init();
 
-    display.update();
-
-    Rotary rotary;
+    //display.update();
+    
     rotary.begin();
 
+    rotary.onShortPress = onRotaryShortPress;
+    rotary.onTurn = onRotaryTurn;
+    rotary.onLongPress = onRotaryLongPress;
 
     while (true) {
-        int rotaryValue = rotary.getPosition();
-
-        if (rotaryValue != 0){
-            
-           if (changeFaderValue(rotaryValue)) {
-                // Se o valor do fader foi alterado, atualiza o display
-                display.update();
-            } else {
-                if(rotaryValue > 0) {
-                    display.nextPage();
-                }
-    
-                if (rotaryValue < 0) {
-                    display.previousPage();
-                }       
-            }
-
-        }
+        rotary.handleEvents();
         
-        if (rotary.onPress()) {
-            
-        }
-
-        if (rotary.onShortPress()) {
-            if (display.getCurrentScreen() == SCREEN_PRESET_CHANGE) { 
-                // Desmarca todos os pedais e muda para a próxima tela
-                deselectAllPedals(pedals);
-                display.nextScreen();
-            } 
-            else if (display.getCurrentScreen() == SCREEN_PRESET_EDIT) { 
-                // Seleciona o pedal com base na página atual e muda para a próxima tela
-                selectPedalByIndex(pedals, display.getCurrentPage());
-                display.nextScreen();
-            } 
-            else if (display.getCurrentScreen() == SCREEN_PEDAL_PARAMS) { 
-                // Itera pelos pedais para encontrar o pedal selecionado
-                for (auto& pedal : pedals) {
-                    if (pedal->selected) {
-                       // Verifica se o fader na página atual já está selecionado
-                        if (display.getCurrentPage() >= 0 && display.getCurrentPage() < pedal->faders.size()) {
-                            auto& fader = pedal->faders[display.getCurrentPage()];
-                            if (fader.selected) {
-                                // Se já estiver selecionado, desmarca
-                                fader.selected = false;
-                                printf("Fader '%s' desmarcado.\n", fader.title.c_str());
-                            } else {
-                                // Se não estiver selecionado, marca
-                                selectFaderByIndex(pedal->faders, display.getCurrentPage());
-                                printf("Fader '%s' selecionado.\n", fader.title.c_str());
-                            }
-                        }
-                        break;
-                    }
-                }
-        
-                // Atualiza o display para refletir as mudanças
-                display.update();
-            }
-        }
-
-        if (rotary.onLongPress()) {
-            //printf("Pressionamento longo!\n");
-            display.previousScreen();
-        }
-
-        if (rotary.onRelease()) {
-           
-        }
-
-
         vTaskDelay(pdMS_TO_TICKS(100));
     }
-
-    
-
 }

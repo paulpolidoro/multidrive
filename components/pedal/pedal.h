@@ -6,13 +6,6 @@
 #include <vector>
 #include "fader.h"
 
-struct pedal_t {
-    int id; // Identificador único do pedal
-    bool selected; // Indica se o pedal está selecionado
-    std::string name; // Nome do pedal
-    std::vector<fader_t> faders; // Vetor dinâmico de faders
-};
-
 class Pedal {
     public:
     int id;
@@ -21,15 +14,28 @@ class Pedal {
 
     Pedal(int id, const std::string& name, const std::vector<Fader>& faders); 
 
+    //Metodos de estados do pedal
     bool isSelected();
     bool isActived();
     void select();
     void unselect();
     void activate();
     void deactivate();
+
+
     Fader& getFader(int index);
+    Fader* getSelectedFader();
     void addFader(const Fader& fader);
     void removeFader(int index);
+
+    void setSelectedFaderValue(int value);
+    void upSelectedFader();
+    void downSelectedFader();
+    bool hasFaderSelected();
+    void selectFaderByIndex(int index);
+    void unselectAllFaders();
+    void toggleSelectFaderByIndex(int index);
+
 
     private:
     bool selected {false};
@@ -38,10 +44,12 @@ class Pedal {
 
 extern std::vector<std::shared_ptr<Pedal>> pedals;
 
-void deselectAllPedals(std::vector<std::shared_ptr<pedal_t>>& pedals);
+void deselectAllPedals(std::vector<std::shared_ptr<Pedal>>& pedals);
 
-void selectPedalById(std::vector<std::shared_ptr<pedal_t>>& pedals, int id);
+void selectPedalById(std::vector<std::shared_ptr<Pedal>>& pedals, int id);
 
-void selectPedalByIndex(std::vector<std::shared_ptr<pedal_t>>& pedals, int index);
+void selectPedalByIndex(std::vector<std::shared_ptr<Pedal>>& pedals, int index);
+
+bool changeFaderValueIfSelected(std::vector<std::shared_ptr<Pedal>>& pedals, int value);
 
 #endif // PEDAL_H

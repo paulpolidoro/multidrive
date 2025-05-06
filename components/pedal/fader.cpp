@@ -1,18 +1,5 @@
 #include "fader.h"
 
-void deselectAllFaders(std::vector<fader_t>& faders) {
-    for (auto& fader : faders) {
-        fader.selected = false;
-    }
-}
-
-void selectFaderByIndex(std::vector<fader_t>& faders, int index) {
-    deselectAllFaders(faders);
-    if (index >= 0 && index < faders.size()) {
-        faders[index].selected = true;
-    }
-}
-
 Fader::Fader(const std::string& title, int value) : title(title), value(value) {};
 
 void Fader::setValue(int value) {
@@ -23,6 +10,10 @@ void Fader::setValue(int value) {
     } else {
         this->value = value;
     }
+}
+
+int Fader::getValue() const {
+    return value;
 }
 
 void Fader::up() {
@@ -41,6 +32,14 @@ void Fader::unselect() {
     selected = false;
 }
 
-bool Fader::isSelected() {
+void Fader::toggleSelect() {
+    selected = !selected;
+}
+
+bool Fader::isSelected() const {
     return selected;
+}
+
+void Fader::addValue(int value) {
+    setValue(this->value + value);
 }

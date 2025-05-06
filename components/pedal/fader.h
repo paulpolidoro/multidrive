@@ -4,37 +4,27 @@
 #include <vector>
 #include <string>
 
-struct fader_t {
-    std::string title; // Título do fader
-    int value;  
-    bool selected;       // Valor do fader
-};
-
 class Fader{
     public:
-    std::string title; // Título do fader
+    std::string title;
 
-    Fader(const std::string& title, int value);
+    Fader(const std::string& title, int value=0);
 
     void setValue(int value);
+    int getValue() const;
     void up();
     void down();
     void select();
     void unselect();
-    bool isSelected();
+    void toggleSelect();
+    bool isSelected() const;
+    void addValue(int value);
 
     private:
     int value{0};
-    int minValue{0}; // Valor mínimo do fader
-    int maxValue{100}; // Valor máximo do fader
-    bool selected{false}; // Indica se o fader está selecionado
+    int minValue{0};
+    int maxValue{100};
+    bool selected{false};
 };
-
-
-
-
-void deselectAllFaders(std::vector<fader_t>& faders);
-
-void selectFaderByIndex(std::vector<fader_t>& faders, int index);
 
 #endif // FADER_H
