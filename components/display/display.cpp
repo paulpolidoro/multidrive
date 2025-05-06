@@ -22,7 +22,7 @@ static const i2c_ssd1306_config_t i2c_ssd1306_config = {
     .wise = SSD1306_TOP_TO_BOTTOM
 };
 
-Display::Display() : currentScreen(0), currentPage(0), totalScreens(3), totalPages(3), beforeScreen(0), beforePage(0) {}
+Display::Display() : currentScreen(0), currentPage(0), totalScreens(3), totalPages(9), beforeScreen(0), beforePage(0) {}
 
 Display::~Display() {}
 
@@ -151,10 +151,10 @@ void Display::update() {
             renderPresetChange(*this, currentPage, beforeScreen, beforePage); // Passa a Page atual
             break;
         case 1: // Screen 1: PresetEdit
-            renderPresetEdit(*this, currentPage, beforeScreen, beforePage); // Passa a Page atual
+            currentPage = renderPresetEdit(*this, currentPage, beforeScreen, beforePage); // Passa a Page atual
             break;
         case 2: // Screen 2: PedalParams
-            renderPedalParams(*this, currentPage, beforeScreen, beforePage); // Passa a Page atual
+            currentPage = renderPedalParams(*this, currentPage, beforeScreen, beforePage); // Passa a Page atual
             break;
         default:
             printText("Screen desconhecida", 0, 0, false);
