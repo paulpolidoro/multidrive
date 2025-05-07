@@ -94,6 +94,7 @@
         "thread": "cpp",
         "cinttypes": "cpp",
         "__tree": "cpp",
-        "forward_list": "cpp"
+        "forward_list": "cpp",
+        "stdint.h": "c"
     }
 }

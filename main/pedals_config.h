@@ -5,6 +5,6 @@
 #include <memory>
 #include "pedal.h"
 
-extern std::vector<std::shared_ptr<Pedal>> pedals;
+extern std::vector<std::shared_ptr<Pedal>> globalPedals;
 
 #endif // PEDALS_CONFIG_H

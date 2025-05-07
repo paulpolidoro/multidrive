@@ -2,6 +2,7 @@
 #define SCREEN_H
 
 #include "display.h"
+#include <string.h>
 
 #define SCREEN_PRESET_CHANGE 0
 #define SCREEN_PRESET_EDIT 1

@@ -2,6 +2,10 @@
 #include <math.h>
 #include <memory>
 #include "pedal.h"
+#include "preset.h"
+#include "font_display.h"
+#include "font_mono_8.h"
+#include "font_mono_5.h"
 
 Screen::Screen() {}
 
@@ -10,23 +14,39 @@ void Screen::init() {
 }
 
 void Screen::presetScreen() {
-    display.printText("Preset Change", 0, 0, false);
+    if(getCurrentPage() > MAX_PRESETS - 1) {
+        setCurrentPage(MAX_PRESETS - 1);
+    }else{
+        globalPresets[getCurrentPage()].applyToPedals();
+    }
+
+    display.printText(globalPresets[getCurrentPage()].getName().c_str(), 0, 0, false);
+
+    std::string presetCodeStr = presetCode(getCurrentPage());
+
+    int x = (128 - (32 * 2)) / 2;
+
+    if(getCurrentPage() < 4) {
+        x = (128 - (24 + 32)) / 2;
+    }
+
+    display.drawText(x, 10, presetCodeStr.c_str(), FontDisplay);
     display.update();
 }
 
 void Screen::presetEditScreen() {
-    setCurrentPage(fmin(getCurrentPage(), pedals.size() - 1));  
+    setCurrentPage(fmin(getCurrentPage(), globalPedals.size() - 1));  
 
     int baseIndex = (getCurrentPage() / 3) * 3;
     int maxPedalsPage = baseIndex + 3;
 
-    for (size_t i = baseIndex; i < fmin(pedals.size(), maxPedalsPage); ++i) {
-        display.addOption(0, 0 + (18 * (i - baseIndex)), pedals[i]->name.c_str(), (getCurrentPage() == i));
+    for (size_t i = baseIndex; i < fmin(globalPedals.size(), maxPedalsPage); ++i) {
+        display.addOption(0, 0 + (18 * (i - baseIndex)), globalPedals[i]->name.c_str(), (getCurrentPage() == i));
     }
 }
 
 void Screen::pedalParamsScreen() {
-    for (const auto& pedal : pedals) {
+    for (const auto& pedal : globalPedals) {
         if (pedal->isSelected()) {
             setCurrentPage(fmin(getCurrentPage(), pedal->faders.size() - 1));
 

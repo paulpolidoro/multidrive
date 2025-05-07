@@ -21,6 +21,7 @@ class Pedal {
     void unselect();
     void activate();
     void deactivate();
+    void setActive(bool active);
 
 
     Fader& getFader(int index);
@@ -42,7 +43,7 @@ class Pedal {
     bool actived {false};
 };
 
-extern std::vector<std::shared_ptr<Pedal>> pedals;
+extern std::vector<std::shared_ptr<Pedal>> globalPedals;
 
 void deselectAllPedals(std::vector<std::shared_ptr<Pedal>>& pedals);
 

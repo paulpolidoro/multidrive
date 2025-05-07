@@ -66,6 +66,10 @@ void Pedal::deactivate(){
     actived = false;    
 }
 
+void Pedal::setActive(bool active) {
+    actived = active;
+}
+
 Fader& Pedal::getFader(int index) {
    return faders[index];
 }

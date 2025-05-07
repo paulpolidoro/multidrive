@@ -94,9 +94,55 @@ void Display::addOption(int x, int y, const char* text, bool selected) {
         printRetangle(0, y, 127, 18, false);
     }
 
-    printText(text, x, 5 + y, false);
+    printText(text, 2, 5 + y, false);
 }
 
 void Display::update() {
     ESP_ERROR_CHECK(i2c_ssd1306_buffer_to_ram(&i2c_ssd1306)); // Atualiza o display
+}
+
+void Display::drawChar(int x, int y, char c, const tFont& font) {
+     // Procura o caractere na fonte
+     for (int i = 0; i < font.length; i++) {
+        if (font.chars[i].code == c) {
+            const tImage* image = font.chars[i].image;
+
+            // Desenha o bitmap do caractere no display
+            for (int row = 0; row < image->height; row++) {
+                for (int col = 0; col < image->width; col++) {
+                    // Calcula o índice do pixel no bitmap
+                    int byteIndex = (row * image->width + col) / 8;
+                    int bitIndex = 7 - (col % 8);
+
+                    // Verifica se o pixel está ativo
+                    bool pixel = (image->data[byteIndex] >> bitIndex) & 0x01;
+
+                    // Define o pixel no buffer do display
+                    ESP_ERROR_CHECK(i2c_ssd1306_buffer_fill_pixel(&i2c_ssd1306, x + col, y + row, pixel));
+                }
+
+            }
+
+            return; // Caractere encontrado e desenhado
+        }
+    }
+}
+
+void Display::drawText(int x, int y, const char* text, const tFont& font) {
+    int cursor_x = x;
+
+    while (*text) {
+        // Procura o caractere na fonte
+        for (int i = 0; i < font.length; i++) {
+            if (font.chars[i].code == *text) {
+                // Desenha o caractere
+                drawChar(cursor_x, y, *text, font);
+
+                // Avança o cursor com base na largura do caractere atual
+                cursor_x += font.chars[i].char_width;
+                break;
+            }
+        }
+        text++;
+    }
 }
