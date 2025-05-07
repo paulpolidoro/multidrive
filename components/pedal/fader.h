@@ -3,12 +3,13 @@
 
 #include <vector>
 #include <string>
+#include "driver/ledc.h"
 
 class Fader{
     public:
     std::string title;
 
-    Fader(int pin, const std::string& title, int value=0);
+    Fader(int pin, ledc_channel_t channel, const std::string& title, int value=0);
 
     void setValue(int value);
     int getValue() const;
@@ -22,6 +23,7 @@ class Fader{
 
     private:
     int pin;
+    ledc_channel_t channel;
     int value{0};
     int minValue{0};
     int maxValue{100};

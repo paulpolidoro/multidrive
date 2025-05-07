@@ -1,21 +1,16 @@
 #include <stdio.h>
-//#include "display.h"
+#include <vector>
 #include "rotary.h"
 #include "pedal.h"
 #include "screen.h"
-#include <vector>
-
-// Display display2;
+#include "pedals_config.h"
+#include "foot.h"
 
 Rotary rotary;
 Screen screen;
 
-extern std::vector<std::shared_ptr<Pedal>> pedals = {
-    std::make_shared<Pedal>(Pedal{1, "Morning Glory", {Fader{5, "Volume"}, Fader{4, "Drive", 50}, Fader{2, "Tone", 100}}}), 
-    //std::make_shared<Pedal>(Pedal{2, "OCD", {Fader{"Volume"}, Fader{"Drive"}, Fader{"Tone"}}}),
-    //std::make_shared<Pedal>(Pedal{3, "1989", {Fader{"Drive"}, Fader{"Cut"}, Fader{"Volume"}}}),
-    //std::make_shared<Pedal>(Pedal{4, "Timmy", {Fader{"Drive"}, Fader{"Gain"}, Fader{"Bass"}, Fader{"Treble"}}}),
-};
+Foot footButton1(GPIO_NUM_5);
+
 
 void onRotaryShortPress() {
     if (screen.getCurrentScreen() == SCREEN_PRESET_CHANGE) { 
@@ -67,17 +62,33 @@ extern "C" void app_main() {
     screen.init();
     screen.update();
     
-
-    //display.update();
-    
     rotary.begin();
 
     rotary.onShortPress = onRotaryShortPress;
     rotary.onTurn = onRotaryTurn;
     rotary.onLongPress = onRotaryLongPress;
 
+    footButton1.begin();
+
+    footButton1.onPress = []() {
+        printf("Botão 1 pressionado!\n");
+    };
+
+    footButton1.onShortPress = []() {
+        printf("Botão 1 pressionado curto!\n");
+    };
+
+    footButton1.onLongPress = []() {
+        printf("Botão 1 pressionado longo!\n");
+    };
+
+    footButton1.onRelease = []() {
+        printf("Botão 1 liberado!\n");
+    };
+
     while (true) {
         rotary.handleEvents();
+        footButton1.handleEvents();
         
         vTaskDelay(pdMS_TO_TICKS(100));
     }

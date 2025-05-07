@@ -58,6 +58,22 @@
       "left": 249.05,
       "rotate": 90,
       "attrs": { "value": "1000" }
+    },
+    {
+      "type": "wokwi-pushbutton-6mm",
+      "id": "btn1",
+      "top": -152.6,
+      "left": 128.8,
+      "rotate": 90,
+      "attrs": { "color": "green", "xray": "1" }
+    },
+    {
+      "type": "wokwi-pushbutton-6mm",
+      "id": "btn2",
+      "top": -152.6,
+      "left": 176.8,
+      "rotate": 90,
+      "attrs": { "color": "green", "xray": "1" }
     }
   ],
   "connections": [
@@ -76,11 +92,15 @@
     [ "led2:C", "led1:C", "black", [ "v0" ] ],
     [ "led3:C", "led2:C", "black", [ "v0" ] ],
     [ "led1:A", "r1:1", "green", [ "v0" ] ],
-    [ "r1:2", "esp:5", "green", [ "h0", "v56.4" ] ],
     [ "led3:A", "r3:1", "green", [ "v0" ] ],
     [ "led2:A", "r2:1", "green", [ "v0" ] ],
-    [ "esp:4", "r2:2", "green", [ "h230.4", "v-9.6" ] ],
-    [ "r3:2", "esp:2", "green", [ "h0", "v114" ] ]
+    [ "r1:2", "esp:12", "green", [ "v162", "h-307.2", "v-76.8" ] ],
+    [ "r2:2", "esp:14", "green", [ "h0", "v181.2", "h-364.8", "v-105.6" ] ],
+    [ "r3:2", "esp:27", "green", [ "h0", "v200.4", "h-412.8", "v-134.4" ] ],
+    [ "btn1:2.r", "esp:GND.2", "black", [ "v0" ] ],
+    [ "btn2:2.r", "esp:GND.2", "black", [ "v0" ] ],
+    [ "btn1:1.r", "esp:5", "#8f4814", [ "v260", "h-9.6" ] ],
+    [ "btn2:1.r", "esp:17", "#8f4814", [ "v0" ] ]
   ],
   "dependencies": {}
 }
