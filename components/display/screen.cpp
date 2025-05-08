@@ -6,21 +6,46 @@
 #include "font_display.h"
 #include "font_mono_8.h"
 #include "font_mono_5.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
-Screen::Screen() {}
+
+Screen::Screen(Storage& storage) : storage(storage) {}
 
 void Screen::init() {
     display.init();
+
+    printf("Initializing display...\n");
+    update();
 }
 
 void Screen::presetScreen() {
-    if(getCurrentPage() > MAX_PRESETS - 1) {
-        setCurrentPage(MAX_PRESETS - 1);
-    }else{
-        globalPresets[getCurrentPage()].applyToPedals();
+    int currentPage = getCurrentPage();
+
+    if (currentPage >= MAX_PRESETS - 1){
+        currentPage = MAX_PRESETS - 1;
+        setCurrentPage(currentPage);
     }
 
-    display.printText(globalPresets[getCurrentPage()].getName().c_str(), 0, 0, false);
+    Preset preset = storage.loadPreset(currentPage);
+    preset.applyToPedals();
+    
+
+
+    // if(getCurrentPage() > MAX_PRESETS - 1) {
+    //     setCurrentPage(MAX_PRESETS - 1);
+    // }else{
+        //globalPresets[getCurrentPage()].applyToPedals();
+        // Carrega o preset do índice atual
+       // Preset preset = storage.loadPreset(getCurrentPage());
+
+        
+      //  preset.applyToPedals(); 
+    // }
+
+    //Preset preset = storage.loadPreset(getCurrentPage());
+
+    display.printText(preset.getName().c_str(), 0, 0, false);
 
     std::string presetCodeStr = presetCode(getCurrentPage());
 
@@ -123,6 +148,28 @@ int Screen::getCurrentPage() const {
     return currentPages[currentScreen];
 }
 
+int Screen::getPageFromScreen(int screen) const {
+    return currentPages[screen];
+}
+
+void Screen::savePreset() {
+    display.clear();
+
+    const char* message = "PRESET SAVED";
+    int textWidth = strlen(message) * 8; 
+    int x = (128 - textWidth) / 2;
+
+    display.printRetangle(x - 8, 20, textWidth + 16, 24, false);
+
+    display.printText(message, x, 28, false); // Usa a posição x calculada
+    display.update();;
+
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    update();
+
+}
+
 void Screen::update() {
     display.clear(); 
 
@@ -142,4 +189,15 @@ void Screen::update() {
     }
 
     display.update();
+    lastUpdateTime = esp_timer_get_time(); 
+}
+
+void Screen::handleBackHome() {
+    int64_t currentTime = esp_timer_get_time(); // Tempo atual em microssegundos
+    int secondsToBack = 5;
+
+    // Verifica se já se passaram 5 segundos (5.000.000 microssegundos)
+    if ((currentTime - lastUpdateTime) > 1000000*secondsToBack and currentScreen != 0) {
+        goToScreenAndPage(0, getPageFromScreen(0)); // Volta para a tela inicial
+    }
 }

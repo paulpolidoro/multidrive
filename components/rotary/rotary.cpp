@@ -1,5 +1,7 @@
 #include "rotary.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 
 Rotary::Rotary() {}
@@ -9,6 +11,7 @@ void Rotary::begin() {
     io_conf.pin_bit_mask = (1ULL << swPin);
     io_conf.mode = GPIO_MODE_INPUT;
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     gpio_config(&io_conf);
 
     pcnt_config_t pcnt_config = {
@@ -25,7 +28,20 @@ void Rotary::begin() {
     };
     
     pcnt_unit_config(&pcnt_config);
-    pcnt_isr_service_install(0); // Instala o serviço ISR   
+    //pcnt_isr_service_install(0); // Instala o serviço ISR   
+
+      // Zera o contador do PCNT
+      pcnt_counter_pause(unit);
+      pcnt_counter_clear(unit);
+      pcnt_counter_resume(unit);
+  
+      // Sincroniza lastPosition com o valor inicial do contador
+      int16_t count = 0;
+      pcnt_get_counter_value(unit, &count);
+      lastPosition = count;
+  
+      // Adiciona um pequeno atraso para estabilizar os sinais
+      vTaskDelay(pdMS_TO_TICKS(50));
 }
 
 int Rotary::getPosition() {

@@ -1,88 +1,201 @@
 #include "storage.h"
-#include <sstream> // Para manipulação de strings
+#include "esp_log.h"
+#include "esp_littlefs.h"
+#include "cJSON.h"
+#include "pedal.h"
+
+static const char *TAG = "Storage";
+
+Storage& Storage::getInstance() {
+    static Storage instance; // Instância única
+    return instance;
+}
 
 Storage::Storage() {
-    // Inicialização da memória, se necessário
+    // Configuração do LittleFS
+    esp_vfs_littlefs_conf_t conf = {
+        .base_path = "/littlefs",
+        .partition_label = "vfs",
+        .format_if_mount_failed = true,
+        .dont_mount = false,
+    };
+
+    // Monta o sistema de arquivos
+    esp_err_t ret = esp_vfs_littlefs_register(&conf);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Erro ao montar o LittleFS (%s)", esp_err_to_name(ret));
+    } else {
+        ESP_LOGI(TAG, "LittleFS montado com sucesso");
+    }
 }
 
-// Salva um preset específico
+Storage::~Storage() {
+    esp_vfs_littlefs_unregister("vfs");
+}
+
 bool Storage::savePreset(const Preset& preset, int index) {
-    if (index < 0 || index >= MAX_PRESETS) {
-        return false; // Índice inválido
+    // Serializa o preset para JSON
+    cJSON *root = cJSON_CreateObject();
+    if (!root) {
+        ESP_LOGE(TAG, "Erro ao criar objeto JSON");
+        return false;
     }
 
-    // Serializa o preset para uma string
-    std::ostringstream serializedData;
-    serializedData << preset.getId() << ";" << preset.getName() << ";";
+    cJSON_AddNumberToObject(root, "id", preset.getId());
+    cJSON_AddStringToObject(root, "name", preset.getName().c_str());
 
-    for (const auto& pedal : preset.getPedals()) {
-        for (const auto& value : pedal) {
+    // Serializa os valores dos pedals
+    cJSON *pedalsArray = cJSON_CreateArray();
+    for (const auto& row : preset.getPedals()) {
+        cJSON *rowArray = cJSON_CreateArray();
+        for (const auto& value : row) {
             if (std::holds_alternative<bool>(value)) {
-                serializedData << (std::get<bool>(value) ? "1" : "0"); // Salva bool como 1 ou 0
+                cJSON_AddItemToArray(rowArray, cJSON_CreateBool(std::get<bool>(value)));
             } else if (std::holds_alternative<int>(value)) {
-                serializedData << std::get<int>(value); // Salva int como está
+                cJSON_AddItemToArray(rowArray, cJSON_CreateNumber(std::get<int>(value)));
             }
-            serializedData << ",";
         }
-        serializedData.seekp(-1, std::ios_base::end); // Remove a última vírgula
-        serializedData << "|"; // Separador entre pedais
+        cJSON_AddItemToArray(pedalsArray, rowArray);
+    }
+    cJSON_AddItemToObject(root, "pedals", pedalsArray);
+
+    char *jsonString = cJSON_PrintUnformatted(root);
+    cJSON_Delete(root);
+
+    if (!jsonString) {
+        ESP_LOGE(TAG, "Erro ao serializar JSON");
+        return false;
     }
 
-    // Escreve os dados na memória
-    return writeToStorage("preset_" + std::to_string(index), serializedData.str());
+    // Gera o caminho do arquivo
+    std::string key = "/littlefs/preset_" + std::to_string(index) + ".json";
+
+    // Escreve no LittleFS
+    bool result = writeToStorage(key, jsonString);
+
+    free(jsonString); // Libera a memória alocada pelo cJSON_PrintUnformatted
+
+    ESP_LOGI(TAG, "Preset salvo: %s", key.c_str());
+    return result;
 }
 
-// Carrega um preset específico
-Preset Storage::loadPreset(int index) {
-    if (index < 0 || index >= MAX_PRESETS) {
-        return Preset(); // Retorna um preset vazio se o índice for inválido
-    }
+bool Storage::saveCurrent(int index, const std::string& name) {
+    // Cria um objeto Preset com os dados do estado atual dos pedais
+    Preset currentPreset;
+    currentPreset.setId(index + 1); // Define o ID do preset
+    currentPreset.setName(name);   // Define o nome do preset
 
-    // Lê os dados da memória
-    std::string data = readFromStorage("preset_" + std::to_string(index));
-    if (data.empty()) {
-        return Preset(); // Retorna um preset vazio se não houver dados
-    }
-
-    // Desserializa os dados para criar um objeto Preset
-    std::istringstream serializedData(data);
-    std::string idStr, name, pedalData;
-
-    std::getline(serializedData, idStr, ';');
-    std::getline(serializedData, name, ';');
-
-    int id = std::stoi(idStr);
+    // Serializa os valores dos pedais para o objeto Preset
     std::vector<std::vector<std::variant<bool, int>>> pedals;
+    for (const auto& pedal : globalPedals) {
+        std::vector<std::variant<bool, int>> rowValues;
 
-    while (std::getline(serializedData, pedalData, '|')) {
-        std::istringstream pedalStream(pedalData);
-        std::string value;
-        std::vector<std::variant<bool, int>> pedal;
+        // Adiciona o estado ativo do pedal
+        rowValues.push_back(pedal->isActived());
 
-        while (std::getline(pedalStream, value, ',')) {
-            if (value == "1" || value == "0") {
-                pedal.push_back(value == "1"); // Converte para bool
-            } else {
-                pedal.push_back(std::stoi(value)); // Converte para int
+        // Adiciona os valores dos faders
+        for (const auto& fader : pedal->faders) {
+            rowValues.push_back(fader.getValue());
+        }
+
+        pedals.push_back(rowValues);
+    }
+    currentPreset.setPedals(pedals);
+
+    // Reutiliza o método savePreset para salvar o preset
+    return savePreset(currentPreset, index);
+}
+
+Preset Storage::loadPreset(int index) {
+    // Gera o caminho do arquivo
+    std::string key = "/littlefs/preset_" + std::to_string(index) + ".json";
+
+    // Lê o conteúdo do arquivo
+    std::string data = readFromStorage(key);
+    if (data.empty()) {
+        ESP_LOGW(TAG, "Preset não encontrado: %s", key.c_str());
+        return Preset(); // Retorna um preset vazio
+    }
+
+    // Desserializa o JSON
+    cJSON *root = cJSON_Parse(data.c_str());
+    if (!root) {
+        ESP_LOGE(TAG, "Erro ao desserializar JSON");
+        return Preset();
+    }
+
+    Preset preset;
+    cJSON *id = cJSON_GetObjectItem(root, "id");
+    cJSON *name = cJSON_GetObjectItem(root, "name");
+    cJSON *pedalsArray = cJSON_GetObjectItem(root, "pedals");
+
+    if (cJSON_IsNumber(id)) {
+        preset.setId(id->valueint);
+    }
+
+    if (cJSON_IsString(name)) {
+        preset.setName(name->valuestring);
+    }
+
+    if (cJSON_IsArray(pedalsArray)) {
+        std::vector<std::vector<std::variant<bool, int>>> pedals;
+
+        cJSON *row;
+        cJSON_ArrayForEach(row, pedalsArray) {
+            if (cJSON_IsArray(row)) {
+                std::vector<std::variant<bool, int>> rowValues;
+                cJSON *value;
+                cJSON_ArrayForEach(value, row) {
+                    if (cJSON_IsBool(value)) {
+                        rowValues.push_back(static_cast<bool>(cJSON_IsTrue(value)));
+                    } else if (cJSON_IsNumber(value)) {
+                        rowValues.push_back(value->valueint);
+                    }
+                }
+                pedals.push_back(rowValues);
             }
         }
 
-        pedals.push_back(pedal);
+        preset.setPedals(pedals);
     }
 
-    return Preset(id, name, pedals);
+    cJSON_Delete(root);
+
+    return preset;
 }
 
-// Escreve na memória
 bool Storage::writeToStorage(const std::string& key, const std::string& data) {
-    // Implemente a lógica para salvar na memória da placa (ex.: EEPROM, SPIFFS, etc.)
-    //std::cout << "Salvando na memória: " << key << " -> " << data << std::endl;
+    FILE *file = fopen(key.c_str(), "w");
+    if (!file) {
+        ESP_LOGE(TAG, "Erro ao abrir o arquivo para escrita: %s", key.c_str());
+        return false;
+    }
+
+    size_t written = fwrite(data.c_str(), 1, data.size(), file);
+    fclose(file);
+
+    if (written != data.size()) {
+        ESP_LOGE(TAG, "Erro ao escrever no arquivo: %s", key.c_str());
+        return false;
+    }
+
     return true;
 }
 
-// Lê da memória
 std::string Storage::readFromStorage(const std::string& key) {
-    // Implemente a lógica para ler da memória da placa
-   // std::cout << "Lendo da memória: " << key << std::endl;
-    return ""; // Retorne os dados lidos
+    FILE *file = fopen(key.c_str(), "r");
+    if (!file) {
+        ESP_LOGE(TAG, "Erro ao abrir o arquivo para leitura: %s", key.c_str());
+        return "";
+    }
+
+    fseek(file, 0, SEEK_END);
+    size_t size = ftell(file);
+    rewind(file);
+
+    std::string data(size, '\0');
+    fread(&data[0], 1, size, file);
+    fclose(file);
+
+    return data;
 }

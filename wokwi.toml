@@ -2,3 +2,9 @@
     version = 1
     firmware = 'build/multidrive.bin'
     elf = 'build/multidrive.elf'
+
+[partitions]
+file = "partitions.csv"
+
+[files]
+"/littlefs/test.txt" = "Hello, LittleFS!"

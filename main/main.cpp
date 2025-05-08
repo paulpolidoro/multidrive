@@ -1,19 +1,19 @@
 #include <stdio.h>
 #include <vector>
 #include "rotary.h"
-//#include "pedal.h"
 #include "pedals_config.h"
 #include "screen.h"
 #include "foot.h"
 #include "storage.h"
 #include <iostream>
+#include "esp_partition.h"
+#include "esp_log.h"
 
 Rotary rotary;
-Screen screen;
-Storage storage;
+Storage& storage = Storage::getInstance();
+Screen screen(storage);
 
-Foot footButton1(GPIO_NUM_5);
-
+Foot footButton1(GPIO_NUM_2);
 
 void onRotaryShortPress() {
     if (screen.getCurrentScreen() == SCREEN_PRESET_CHANGE) { 
@@ -62,9 +62,6 @@ void onRotaryTurn(int value){
 }
 
 extern "C" void app_main() {
-    screen.init();
-    screen.update();
-    
     rotary.begin();
 
     rotary.onShortPress = onRotaryShortPress;
@@ -82,28 +79,22 @@ extern "C" void app_main() {
     };
 
     footButton1.onLongPress = []() {
-        printf("Botão 1 pressionado longo!\n");
+        int index = screen.getPageFromScreen(SCREEN_PRESET_CHANGE);
+        storage.saveCurrent(index, "Preset_" + std::to_string(index));
+        printf("PRESET %d SALVO!\n", index);
+        screen.savePreset();
     };
 
     footButton1.onRelease = []() {
         printf("Botão 1 liberado!\n");
     };
 
-    // Criando um preset
-    std::vector<std::vector<std::variant<bool, int>>> pedals = {
-        {true, 12, 13, 44}
-    };
-    
-    globalPresets[0] = Preset(1, "Clean Tone", {{true, 0, 20, 30}});
-    globalPresets[1] = Preset(2, "Crunch", {{true, 40, 0, 60}});
-    globalPresets[2] = Preset(3, "1 Stagio", {{true, 0, 80, 90}});
-    globalPresets[3] = Preset(4, "2 Stagio", {{true, 15, 0, 0}});
-    globalPresets[4] = Preset(5, "High Gain", {{true, 0, 55, 65}});
-    globalPresets[5] = Preset(6, "Fuzz", {{true, 0, 85, 0}});
+    screen.init();
 
     while (true) {
         rotary.handleEvents();
         footButton1.handleEvents();
+        screen.handleBackHome();
         
         vTaskDelay(pdMS_TO_TICKS(100));
     }
