@@ -8,4 +8,4 @@
 
 [submodule "components/cJSON"]
 	path = components/cJSON
-	url = https://github.com/DaveGamble/cJSON.gitgit status
+	url = https://github.com/DaveGamble/cJSON.git
