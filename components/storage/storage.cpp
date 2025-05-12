@@ -3,8 +3,13 @@
 #include "esp_littlefs.h"
 #include "cJSON.h"
 #include "pedal.h"
+#include "string.h"
 
 static const char *TAG = "Storage";
+
+bool presetNameIsEmpty(const std::string& str) {
+    return str.empty() || str.find_first_not_of(' ') == std::string::npos;
+}
 
 Storage& Storage::getInstance() {
     static Storage instance; // Instância única
@@ -44,7 +49,6 @@ bool Storage::savePreset(const Preset& preset, int index) {
     cJSON_AddNumberToObject(root, "id", preset.getId());
     cJSON_AddStringToObject(root, "name", preset.getName().c_str());
 
-    // Serializa os valores dos pedals
     cJSON *pedalsArray = cJSON_CreateArray();
     for (const auto& row : preset.getPedals()) {
         cJSON *rowArray = cJSON_CreateArray();
@@ -67,33 +71,29 @@ bool Storage::savePreset(const Preset& preset, int index) {
         return false;
     }
 
-    // Gera o caminho do arquivo
     std::string key = "/littlefs/preset_" + std::to_string(index) + ".json";
 
-    // Escreve no LittleFS
     bool result = writeToStorage(key, jsonString);
 
-    free(jsonString); // Libera a memória alocada pelo cJSON_PrintUnformatted
-
-    ESP_LOGI(TAG, "Preset salvo: %s", key.c_str());
+    free(jsonString);
     return result;
 }
 
-bool Storage::saveCurrent(int index, const std::string& name) {
-    // Cria um objeto Preset com os dados do estado atual dos pedais
-    Preset currentPreset;
-    currentPreset.setId(index + 1); // Define o ID do preset
-    currentPreset.setName(name);   // Define o nome do preset
+bool Storage::saveCurrent(int index, std::string& name) {
+    if(presetNameIsEmpty(name)) {
+        name = "PRESET " + std::to_string(index);
+    }
 
-    // Serializa os valores dos pedais para o objeto Preset
+    Preset currentPreset;
+    currentPreset.setId(index + 1);
+    currentPreset.setName(name);
+
     std::vector<std::vector<std::variant<bool, int>>> pedals;
     for (const auto& pedal : globalPedals) {
         std::vector<std::variant<bool, int>> rowValues;
 
-        // Adiciona o estado ativo do pedal
         rowValues.push_back(pedal->isActived());
 
-        // Adiciona os valores dos faders
         for (const auto& fader : pedal->faders) {
             rowValues.push_back(fader.getValue());
         }
@@ -102,15 +102,12 @@ bool Storage::saveCurrent(int index, const std::string& name) {
     }
     currentPreset.setPedals(pedals);
 
-    // Reutiliza o método savePreset para salvar o preset
     return savePreset(currentPreset, index);
 }
 
 Preset Storage::loadPreset(int index) {
-    // Gera o caminho do arquivo
     std::string key = "/littlefs/preset_" + std::to_string(index) + ".json";
 
-    // Lê o conteúdo do arquivo
     std::string data = readFromStorage(key);
     if (data.empty()) {
         ESP_LOGW(TAG, "Preset não encontrado: %s", key.c_str());

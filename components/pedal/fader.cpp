@@ -30,9 +30,9 @@ title(title), pin(pin), channel(channel), value(value) {
 
 void Fader::setValue(int value) {
     if (value < minValue) {
-        this->value = minValue;
-    } else if (value > maxValue) {
         this->value = maxValue;
+    } else if (value > maxValue) {
+        this->value = minValue;
     } else {
         this->value = value;
     }

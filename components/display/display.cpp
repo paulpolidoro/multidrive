@@ -101,7 +101,7 @@ void Display::update() {
     ESP_ERROR_CHECK(i2c_ssd1306_buffer_to_ram(&i2c_ssd1306)); // Atualiza o display
 }
 
-void Display::drawChar(int x, int y, char c, const tFont& font) {
+void Display::drawChar(int x, int y, char c, const tFont& font, bool invert) {
      // Procura o caractere na fonte
      for (int i = 0; i < font.length; i++) {
         if (font.chars[i].code == c) {
@@ -115,7 +115,7 @@ void Display::drawChar(int x, int y, char c, const tFont& font) {
                     int bitIndex = 7 - (col % 8);
 
                     // Verifica se o pixel está ativo
-                    bool pixel = (image->data[byteIndex] >> bitIndex) & 0x01;
+                    bool pixel = ((image->data[byteIndex] >> bitIndex) & 0x01) ^ invert;
 
                     // Define o pixel no buffer do display
                     ESP_ERROR_CHECK(i2c_ssd1306_buffer_fill_pixel(&i2c_ssd1306, x + col, y + row, pixel));
@@ -128,7 +128,7 @@ void Display::drawChar(int x, int y, char c, const tFont& font) {
     }
 }
 
-void Display::drawText(int x, int y, const char* text, const tFont& font) {
+void Display::drawText(int x, int y, const char* text, const tFont& font, bool invert) {
     int cursor_x = x;
 
     while (*text) {
@@ -136,7 +136,7 @@ void Display::drawText(int x, int y, const char* text, const tFont& font) {
         for (int i = 0; i < font.length; i++) {
             if (font.chars[i].code == *text) {
                 // Desenha o caractere
-                drawChar(cursor_x, y, *text, font);
+                drawChar(cursor_x, y, *text, font, invert);
 
                 // Avança o cursor com base na largura do caractere atual
                 cursor_x += font.chars[i].char_width;

@@ -6,9 +6,14 @@
 #include "storage.h"
 #include "esp_timer.h"
 
+
+
 #define SCREEN_PRESET_CHANGE 0
 #define SCREEN_PRESET_EDIT 1
 #define SCREEN_PEDAL_PARAMS 2
+
+extern Display display;
+
 
 class Screen {
 public:
@@ -29,16 +34,15 @@ public:
     int getCurrentPage() const;
     int getPageFromScreen(int screen) const;
 
-    void savePreset();
+    void alert(std::string text, int duration=500);
     
     void presetScreen();
     void presetEditScreen();
     void pedalParamsScreen();
-
 private:
-    Display display;
+    
     int currentScreen{0};
-    int currentPages[3]{0, 0, 0};
+    int currentPages[4]{0, 0, 0, 0};
     Storage& storage;
     int64_t lastUpdateTime{0};
 };

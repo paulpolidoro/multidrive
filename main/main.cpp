@@ -4,7 +4,10 @@
 #include "pedals_config.h"
 #include "screen.h"
 #include "foot.h"
+#include "led.h"
+#include "prompt.h"
 #include "storage.h"
+#include "preset.h"
 #include <iostream>
 #include "esp_partition.h"
 #include "esp_log.h"
@@ -12,10 +15,19 @@
 Rotary rotary;
 Storage& storage = Storage::getInstance();
 Screen screen(storage);
+Prompt prompt;
 
-Foot footButton1(GPIO_NUM_2);
+Foot footPreset(FOOT_PRESET_PIN);
+Foot footBypass(FOOT_BYPASS_PIN);
+Led ledBypass(LED_BYPASS_PIN);
+Led ledPreset(LED_PRESET_PIN);
 
 void onRotaryShortPress() {
+    if (prompt.isShowing()){
+        prompt.fieldToggle();
+        return;
+    }
+    
     if (screen.getCurrentScreen() == SCREEN_PRESET_CHANGE) { 
         deselectAllPedals(globalPedals);
         screen.nextScreen();
@@ -46,16 +58,32 @@ void onRotaryLongPress(){
 
 void onRotaryTurn(int value){
     if (value != 0){
+       if(prompt.isShowing()){
+            if(value <0) {
+                prompt.previous();
+            } else if(value > 0) {
+                prompt.next();
+            }
+
+            return;
+        }
+
         if (changeFaderValueIfSelected(globalPedals, value)) {
+            if(!ledPreset.isBlink()) {
+                 ledPreset.blink(300);
+            }
+           
             screen.update();
             return;
         }
+
+        ledPreset.blinkStop();
 
         if(value > 0) {
             screen.nextPage();
         }
 
-        if (value < 0) {
+        else if (value < 0) {
             screen.previousPage();
         }       
     }
@@ -68,34 +96,70 @@ extern "C" void app_main() {
     rotary.onTurn = onRotaryTurn;
     rotary.onLongPress = onRotaryLongPress;
 
-    footButton1.begin();
+    footBypass.begin();
+    footPreset.begin();
 
-    footButton1.onPress = []() {
-        printf("Botão 1 pressionado!\n");
+    footBypass.onShortPress = []() {
+        if(prompt.isShowing()) {
+            prompt.close();
+            screen.update();
+            return;
+        }
+
+        ledBypass.toggle();
     };
 
-    footButton1.onShortPress = []() {
-        printf("Botão 1 pressionado curto!\n");
+    footPreset.onDoublePress = []() {
+        if(prompt.isShowing()) {
+            return;
+        }
+
+         screen.goToScreenAndPage(SCREEN_PRESET_CHANGE, screen.getPageFromScreen(SCREEN_PRESET_CHANGE) - 1);
     };
 
-    footButton1.onLongPress = []() {
+    footPreset.onShortPress = []() {
         int index = screen.getPageFromScreen(SCREEN_PRESET_CHANGE);
-        storage.saveCurrent(index, "Preset_" + std::to_string(index));
-        printf("PRESET %d SALVO!\n", index);
-        screen.savePreset();
-    };
 
-    footButton1.onRelease = []() {
-        printf("Botão 1 liberado!\n");
+        if(prompt.isShowing()) {
+            std::string presetName = prompt.getText();
+            
+            storage.saveCurrent(index, presetName);
+            ledPreset.blink(150, 3, 0);
+
+            screen.alert("PRESET SAVED", 1000);
+
+            prompt.close();
+
+            screen.update();
+
+            return;
+        }
+
+        screen.goToScreenAndPage(SCREEN_PRESET_CHANGE, screen.getPageFromScreen(SCREEN_PRESET_CHANGE) + 1);
+        //screen.nextPage();
+    };
+    
+    footPreset.onLongPress = []() {
+        int index = screen.getPageFromScreen(SCREEN_PRESET_CHANGE);
+
+        if(prompt.isShowing()) {
+            return;
+        }
+
+        prompt.show("SAVE PRESET " + presetCode(index), storage.loadPreset(index).getName());
     };
 
     screen.init();
 
     while (true) {
         rotary.handleEvents();
-        footButton1.handleEvents();
-        screen.handleBackHome();
+        footPreset.handleEvents();
+        footBypass.handleEvents();
+
+        if(!prompt.isShowing()){
+            screen.handleBackHome();
+        }
         
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }

@@ -18,7 +18,7 @@ std::string presetCode(int presetIndex) {
 }
 
 // Construtor padrão
-Preset::Preset() : id(0), name("Empty"), pedals({}) {}
+Preset::Preset() : id(0), name(""), pedals({}) {}
 
 // Construtor com ID, nome e pedais
 Preset::Preset(int id, const std::string& name, const std::vector<std::vector<std::variant<bool, int>>>& pedals)

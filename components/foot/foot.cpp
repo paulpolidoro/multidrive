@@ -12,10 +12,25 @@ void Foot::begin() {
 
 bool Foot::pressEvent() {
     bool buttonState = gpio_get_level(pin) == 0;
-
+    
     if (buttonState && !lastButtonState) {
         lastButtonState = true;
         pressStartTime = esp_timer_get_time();
+
+        if (checkDoublePress){
+            int64_t doublePressDuration = esp_timer_get_time() - doublePressStartTime;
+
+            if (doublePressDuration < doublePressThreshold) {
+                doublePresseHandled = true; 
+                checkDoublePress = false;
+            }else{
+                doublePressStartTime = esp_timer_get_time();
+            }
+        }else{
+            doublePressStartTime = esp_timer_get_time();
+            checkDoublePress = true; // Set the flag to check for double press
+        }
+
         return true;
     }
 
@@ -28,7 +43,7 @@ bool Foot::shortPressEvent() {
     if (!buttonState && lastButtonState) {
         int64_t pressDuration = esp_timer_get_time() - pressStartTime;
 
-        if (pressDuration < longPressThreshold) {
+        if (pressDuration < longPressThreshold && pressDuration > doublePressThreshold) {
             return true;
         }
     }
@@ -69,6 +84,11 @@ bool Foot::releaseEvent() {
 void Foot::handleEvents() {
     if (pressEvent()) {
         onPress();
+    }
+
+    if (doublePresseHandled){
+        doublePresseHandled = false; // Reset the count if the time exceeds the threshold
+        onDoublePress();
     }
 
     if (shortPressEvent()) {

@@ -9,6 +9,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+Display display;
 
 Screen::Screen(Storage& storage) : storage(storage) {}
 
@@ -25,27 +26,14 @@ void Screen::presetScreen() {
     if (currentPage >= MAX_PRESETS - 1){
         currentPage = MAX_PRESETS - 1;
         setCurrentPage(currentPage);
+    }else if(currentPage < 0){
+        setCurrentPage(0);
     }
 
     Preset preset = storage.loadPreset(currentPage);
     preset.applyToPedals();
-    
 
-
-    // if(getCurrentPage() > MAX_PRESETS - 1) {
-    //     setCurrentPage(MAX_PRESETS - 1);
-    // }else{
-        //globalPresets[getCurrentPage()].applyToPedals();
-        // Carrega o preset do índice atual
-       // Preset preset = storage.loadPreset(getCurrentPage());
-
-        
-      //  preset.applyToPedals(); 
-    // }
-
-    //Preset preset = storage.loadPreset(getCurrentPage());
-
-    display.printText(preset.getName().c_str(), 0, 0, false);
+    display.printText(preset.getName().empty() ? "EMPTY" : preset.getName().c_str(), 0, 0, false);
 
     std::string presetCodeStr = presetCode(getCurrentPage());
 
@@ -56,6 +44,9 @@ void Screen::presetScreen() {
     }
 
     display.drawText(x, 10, presetCodeStr.c_str(), FontDisplay);
+
+    display.printText("BPS", 0, 55, false);
+    display.printText("PST", 103, 55, false);
     display.update();
 }
 
@@ -152,22 +143,20 @@ int Screen::getPageFromScreen(int screen) const {
     return currentPages[screen];
 }
 
-void Screen::savePreset() {
-    display.clear();
+void Screen::alert(std::string text, int duration) {
+    //display.clear();
 
-    const char* message = "PRESET SAVED";
-    int textWidth = strlen(message) * 8; 
+    int textWidth = strlen(text.c_str()) * 8; 
     int x = (128 - textWidth) / 2;
 
     display.printRetangle(x - 8, 20, textWidth + 16, 24, false);
 
-    display.printText(message, x, 28, false); // Usa a posição x calculada
+    display.printText(text.c_str(), x, 28, false); // Usa a posição x calculada
     display.update();;
 
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(duration));
 
     update();
-
 }
 
 void Screen::update() {
@@ -197,7 +186,7 @@ void Screen::handleBackHome() {
     int secondsToBack = 5;
 
     // Verifica se já se passaram 5 segundos (5.000.000 microssegundos)
-    if ((currentTime - lastUpdateTime) > 1000000*secondsToBack and currentScreen != 0) {
+    if ((currentTime - lastUpdateTime) > 1000000*secondsToBack && currentScreen != 0 && currentScreen != 3) {
         goToScreenAndPage(0, getPageFromScreen(0)); // Volta para a tela inicial
     }
 }

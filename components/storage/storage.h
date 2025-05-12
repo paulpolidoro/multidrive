@@ -11,7 +11,7 @@ public:
 
     // Métodos para presets
     bool savePreset(const Preset& preset, int index);
-    bool saveCurrent(int index, const std::string& name); // Atualizado para incluir o nome do preset
+    bool saveCurrent(int index, std::string& name); // Atualizado para incluir o nome do preset
     Preset loadPreset(int index);
 
 private:
